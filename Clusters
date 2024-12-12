@@ -1,0 +1,95 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+
+
+
+df = pd.read_csv('Data/dataset.csv')
+
+
+
+class Analise():
+    
+    def __init__(self, dataframe : pd.DataFrame):
+        
+        self.df = dataframe
+        
+    def preprocessing(self):
+        
+        self.df = self.df.dropna()
+        self.df_numeric = self.df.select_dtypes(['number'])
+         
+        STDA = StandardScaler()
+        
+        for column in self.df_numeric.columns:
+            
+            self.df_numeric[column] = STDA.fit_transform(self.df_numeric[column].values.reshape(-1, 1))
+
+    
+    def DimensionalityReduction(self, reduce_to_n_components = None):
+        
+        if reduce_to_n_components == None:
+            
+            pca = PCA()
+            df_principal_components = pca.fit(self.df_numeric)
+
+            df_principal_components.explained_variance_ratio_
+
+            plt.plot(df_principal_components.explained_variance_ratio_.cumsum(), marker = 'o')
+            plt.show()
+            
+            
+            print('Defina um número de componentes de acordo com a análise gráfica')
+            
+            
+        else:
+            
+            pca = PCA(n_components= reduce_to_n_components)
+            df_principal_components = pca.fit(self.df_numeric)
+            print(f"Variação explicada para {reduce_to_n_components} componentes: {round(100*(df_principal_components.explained_variance_ratio_.cumsum()[-1]), 2)}%")
+        
+
+            self.df_numeric = pca.transform(self.df_numeric)
+            
+            return self.df_numeric
+        
+        
+    def Clusterization(self, number_of_clusters = None):
+            
+            
+        if number_of_clusters == None:
+            
+            ssq_cluster = []
+            
+            for i in range(1, 10):
+                kmeans_pca = KMeans(n_clusters= i, init = 'k-means++')
+                kmeans_pca.fit(self.df_numeric)
+
+                ssq_cluster.append(kmeans_pca.inertia_)
+            
+            plt.plot(ssq_cluster, marker = 'o')
+            plt.show()
+            
+            print('Defina um número de clusters de acordo com a análise gráfica')
+        
+        else:
+            
+            kmeans_pca = KMeans(n_clusters= number_of_clusters, init = 'k-means++')
+            clusters = kmeans_pca.fit(self.df_numeric)
+            
+            labels = kmeans_pca.labels_
+
+            self.df['Cluster'] = labels
+
+        
+            print(self.df.head())
+            
+            return self.df
+
+instancia = Analise(dataframe=df)
+instancia.preprocessing()
+instancia.DimensionalityReduction(reduce_to_n_components=2)
+instancia.Clusterization(number_of_clusters=2)
